@@ -7,7 +7,7 @@ fn fibo(n: u32) -> u32 {
         return 1;
     }
     for _ in 0..=n - 2 {
-        a[2] = a[1].saturating_add(a[0]);
+        a[2] = a[1].checked_add(a[0]).unwrap();
         a[0] = a[1];
         a[1] = a[2];
     }
