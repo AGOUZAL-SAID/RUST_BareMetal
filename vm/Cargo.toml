@@ -1,0 +1,16 @@
+[package]
+name = "vm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "interpreter"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vm"
+path = "src/main.rs"
+
+[dev-dependencies]
+assert_cmd = "2.0.16"
+insta = "1.42.2"
