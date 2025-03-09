@@ -10,13 +10,13 @@ type Result<T, E = Error> = std::result::Result<T, E>;
 
 pub struct Machine {
     memo : [u8;MEMORY_SIZE],
-    registre : [u32; 16],
+    registre : [u32; NREGS],
 }
 
 #[derive(Debug)]
 pub enum Error {
     /// Attempt to create a machine with too large a memory
-    MemoryOverflow,RegistreOverdepass
+    MemoryOverflow,RegistreOverdepass,OutputError,InstructionError
     // Add some more entries to represent different errors
 }
 
@@ -36,6 +36,7 @@ impl Machine {
 
         mem.copy_from_slice(&memory[..]);
         let mut reg: [u32; 16] = [0;16];
+        reg[0] = IP as u32;
         reg[1] = 10;
         reg[2] = 25;
         reg[3] = 0x1234ABCD;
@@ -85,21 +86,21 @@ impl Machine {
                 let rs1: u8  = mem[r0+2];
                 let rs2: u8  = mem[r0+3];
                 self.set_reg(0, (r0+4) as u32)?;
-                self.move_if(rd,rs1,rs2);
+                self.move_if(rd,rs1,rs2)?;
                 Ok(false)
             }
             2 => {
                 let rs1: u8    = mem[r0+2];
                 let rs2: u8    = mem[r0+3];
                 self.set_reg(0, (r0+3) as u32)?;
-                self.store(rs1,rs2);
+                self.store(rs1,rs2)?;
                 Ok(false)
             }
             3 => {
                 let rs1: u8    = mem[r0+2];
                 let rs2: u8    = mem[r0+3];
                 self.set_reg(0, (r0+3) as u32)?;
-                self.load(rs1,rs2);
+                self.load(rs1,rs2)?;
                 Ok(false)
             }
             4 => {
@@ -107,10 +108,40 @@ impl Machine {
                 let rs1: u8  = mem[r0+2];
                 let rs2: u8  = mem[r0+3];
                 self.set_reg(0, (r0+4) as u32)?;
-                self.loadimm(rd,rs1,rs2);
+                self.loadimm(rd,rs1,rs2)?;
+                Ok(false)
+            }
+
+            5 => {
+                let rd : u8  = mem[r0+1];
+                let rs1: u8  = mem[r0+2];
+                let rs2: u8  = mem[r0+3];
+                self.set_reg(0, (r0+4) as u32)?;
+                self.sub(rd,rs1,rs2)?;
                 Ok(false)
             }
             
+            6=>{
+                let rs1: u8  = mem[r0+1];
+                self.set_reg(0, (r0+2) as u32)?;
+                self.out(rs1,fd)?;
+                Ok(false)
+
+            }
+            7=>{
+                self.set_reg(0, (r0+1) as u32)?;
+                Ok(true)
+            }
+            
+            8=>{
+                let rs1: u8  = mem[r0+1];
+                self.set_reg(0, (r0+2) as u32)?;
+                self.out_number(rs1,fd)?;
+                Ok(false)
+            }
+            _ => {
+                return Err(Error::InstructionError)
+            }
         }
         
         // decode instruction
@@ -151,7 +182,7 @@ impl Machine {
         Ok(self.regs()[reg])
     }
 
-    /// store an item in the memory
+    /// store an u32 in the memory
     fn store_mem(&mut self,addres : usize, value :u32) ->Result<()>{
         if addres+3 > MEMORY_SIZE {return Err(Error::MemoryOverflow);}
         self.memo[addres]     = (value & 0xFF) as u8;
@@ -161,6 +192,7 @@ impl Machine {
         Ok(())
     }
 
+    /// load  an u32 in the memory
     fn load_mem(&mut self,addres : usize)->Result<u32>{
         if addres+3 > MEMORY_SIZE {return Err(Error::MemoryOverflow);}
         let value : u32  =self.memo[addres] as u32 + self.memo[addres + 1] as u32 + self.memo[addres + 2] as u32 + self.memo[addres + 3] as u32 ;
@@ -173,24 +205,26 @@ impl Machine {
 
         if test !=0 {
             let value: u32 = self.get_reg(rs1 as usize)?;
-            self.set_reg(rd as usize,value);
+            self.set_reg(rd as usize,value)?;
             return Ok(());
         }
         Ok(())
     }
-
+    /// instruction store
     fn store(&mut self,rs1 :u8 ,rs2 :u8)->Result<()>{
         let value: u32 = self.get_reg(rs2 as usize)?;
         let addres = self.get_reg(rs1 as usize)?;
         self.store_mem(addres as usize, value)?;
         Ok(())
     }
+    /// instruction load
     fn load(&mut self,rs1 :u8 ,rs2 :u8)->Result<()>{
         let addres: u32 = self.get_reg(rs2 as usize)?;
         let value: u32 = self.load_mem(addres as usize)?;
         self.set_reg(rs1 as usize, value)?;
         Ok(())
     }
+    /// instruction loadimm
     fn loadimm(&mut self,rd :u8 , rs1 : u8 , rs2 : u8) ->Result<()>{
         let l  = rs1  as u16 ;
         let mut h  = rs2  as u16 ;
@@ -200,11 +234,37 @@ impl Machine {
         let signed = somme as i16;
         let mut value  = somme as u32 ;
         if signed <0 {value = value + (0xFF as u32)<<24 + (0xff as u32) <<16;}
-
+        self.set_reg(rd as usize, value)?;
+        Ok(()) 
+    }
+    /// instruction sub
+    fn sub(&mut self,rd :u8 , rs1 : u8 , rs2 : u8)->Result<()>{
+        let a = self.get_reg(rs1 as usize)? as i32;
+        let b = self.get_reg(rs2 as usize)? as i32;
+        let value = (a-b) as u32;
         self.set_reg(rd as usize, value)?;
         Ok(())
 
+    }
+    /// instruction out
+    fn out<T: Write>(&mut self,rs1 :u8,fd: &mut T )->Result<()>{
+        let mut data = self.get_reg(rs1 as usize)?;
+        data = data & 0xff ;
+        let value = data as u8 as char;
+        let miss = write!(fd, "{value}");
+        match miss {
+            Err(_)=> {return Err(Error::OutputError)}
+            Ok(_) => {return Ok(())}
+        }
+    }
 
-
+    fn out_number<T: Write>(&mut self,rs1 :u8,fd: &mut T )->Result<()>{
+        let data = self.get_reg(rs1 as usize)?;
+        let value = data as i32;
+        let miss = write!(fd, "{value}");
+        match miss {
+            Err(_)=> {return Err(Error::OutputError)}
+            Ok(_) => {return Ok(())}
+        }
     }
 }
