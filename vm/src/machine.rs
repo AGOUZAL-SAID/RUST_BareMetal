@@ -76,61 +76,64 @@ impl Machine {
     /// `false` if the execution must continue.
     pub fn step_on<T: Write>(&mut self, fd: &mut T) -> Result<bool> {
         // fetch instruction
-        let mem = self.memory();
+        let memory = self.memory();
+        let mut mem = [0;MEMORY_SIZE];
+        mem.copy_from_slice(memory);
         let r0: usize = self.regs()[0] as usize;
         if r0 == MEMORY_SIZE {return  Err(Error::InstructionError);}
         let opcode: u8 = mem[r0];
         match opcode {
             1 => {
+                self.set_reg(0, (r0 + 4) as u32)?;
+                if r0+4>= MEMORY_SIZE {return Ok(false);}
                 self.is_last(r0+4)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
-                self.set_reg(0, (r0 + 4) as u32)?;
                 self.move_if(rd, rs1, rs2)?;
                 Ok(false)
             }
             2 => {
+                self.set_reg(0, (r0 + 3) as u32)?;
                 self.is_last(r0+3)?;
                 let rs1: u8 = mem[r0 + 1];
                 let rs2: u8 = mem[r0 + 2];
-                self.set_reg(0, (r0 + 3) as u32)?;
                 self.store(rs1, rs2)?;
                 Ok(false)
             }
             3 => {
+                self.set_reg(0, (r0 + 3) as u32)?;
                 self.is_last(r0+3)?;
                 let rs1: u8 = mem[r0 + 1];
                 let rs2: u8 = mem[r0 + 2];
-                self.set_reg(0, (r0 + 3) as u32)?;
                 self.load(rs1, rs2)?;
                 Ok(false)
             }
             4 => {
+                self.set_reg(0, (r0 + 4) as u32)?;
                 self.is_last(r0+4)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
-                self.set_reg(0, (r0 + 4) as u32)?;
                 self.loadimm(rd, rs1, rs2)?;
                 Ok(false)
             }
 
             5 => {
+                self.set_reg(0, (r0 + 4) as u32)?;
                 self.is_last(r0+4)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
-                self.set_reg(0, (r0 + 4) as u32)?;
                 self.sub(rd, rs1, rs2)?;
                 println!("here");
                 Ok(false)
             }
 
             6 => {
+                self.set_reg(0, (r0 + 2) as u32)?;
                 self.is_last(r0+2)?;
                 let rs1: u8 = mem[r0 + 1];
-                self.set_reg(0, (r0 + 2) as u32)?;
                 self.out(rs1, fd)?;
                 Ok(false)
             }
@@ -140,9 +143,9 @@ impl Machine {
             }
 
             8 => {
+                self.set_reg(0, (r0 + 2) as u32)?;
                 self.is_last(r0+2)?;
                 let rs1: u8 = mem[r0 + 1];
-                self.set_reg(0, (r0 + 2) as u32)?;
                 self.out_number(rs1, fd)?;
                 Ok(false)
             }
@@ -254,8 +257,8 @@ impl Machine {
     }
     /// instruction sub
     fn sub(& mut self, rd: u8, rs1: u8, rs2: u8) -> Result<()> {
-        let a = self.get_reg(rs1 as usize)? as i32;
-        let b = self.get_reg(rs2 as usize)? as i32;
+        let a = self.get_reg(rs1 as usize)? as i128;
+        let b = self.get_reg(rs2 as usize)? as i128;
         let value = (a - b) as u32;
         self.set_reg(rd as usize, value)?;
         Ok(())
@@ -281,8 +284,11 @@ impl Machine {
             Ok(_) => Ok(()),
         }
     }
-    fn is_last(& self, r0 :usize)-> Result<()>{
-        if r0  >= MEMORY_SIZE {return Err(Error::MemoryOverflow)}
+    fn is_last(&mut self, r0 :usize)-> Result<()>{
+        if r0  >= MEMORY_SIZE {
+            println!("hehe");
+            self.set_reg(0, MEMORY_SIZE as u32)?;
+            return Err(Error::MemoryOverflow)}
         Ok(())
     }
 }
