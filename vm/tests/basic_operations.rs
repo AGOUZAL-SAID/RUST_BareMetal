@@ -1,4 +1,4 @@
-use interpreter::{Machine, MEMORY_SIZE};
+use interpreter::{MEMORY_SIZE, Machine};
 use std::io::{self, Write};
 
 #[test]
