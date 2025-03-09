@@ -30,7 +30,6 @@ impl Machine {
     /// This function returns an error when the memory exceeds `MEMORY_SIZE`.
     pub fn new(memory: &[u8]) -> Result<Self> {
         let size: usize = memory.len();
-        print!("{size}");
 
         if size > MEMORY_SIZE {
             return Err(Error::MemoryOverflow);
@@ -82,9 +81,8 @@ impl Machine {
     /// `false` if the execution must continue.
     pub fn step_on<T: Write>(&mut self, fd: &mut T) -> Result<bool> {
         // fetch instruction
-        let mem: &[u8] = self.memory();
-        let regs: &[u32] = self.regs();
-        let r0: usize = regs[0] as usize;
+        let mem = self.memory();
+        let r0: usize = self.regs()[0] as usize;
         let opcode: u8 = mem[r0];
         match opcode {
             1 => {
@@ -96,15 +94,15 @@ impl Machine {
                 Ok(false)
             }
             2 => {
-                let rs1: u8 = mem[r0 + 2];
-                let rs2: u8 = mem[r0 + 3];
+                let rs1: u8 = mem[r0 + 1];
+                let rs2: u8 = mem[r0 + 2];
                 self.set_reg(0, (r0 + 3) as u32)?;
                 self.store(rs1, rs2)?;
                 Ok(false)
             }
             3 => {
-                let rs1: u8 = mem[r0 + 2];
-                let rs2: u8 = mem[r0 + 3];
+                let rs1: u8 = mem[r0 + 1];
+                let rs2: u8 = mem[r0 + 2];
                 self.set_reg(0, (r0 + 3) as u32)?;
                 self.load(rs1, rs2)?;
                 Ok(false)
@@ -182,7 +180,8 @@ impl Machine {
         if reg > 15 {
             return Err(Error::RegistreOverdepass);
         }
-        Ok(self.regs()[reg])
+        let registre = self.regs()[reg];
+        Ok(registre)
     }
 
     /// store an u32 in the memory
@@ -203,9 +202,9 @@ impl Machine {
             return Err(Error::MemoryOverflow);
         }
         let value: u32 = self.memo[addres] as u32
-            + self.memo[addres + 1] as u32
-            + self.memo[addres + 2] as u32
-            + self.memo[addres + 3] as u32;
+            + ((self.memo[addres + 1] as u32) << 8)
+            + ((self.memo[addres + 2] as u32) << 16)
+            + ((self.memo[addres + 3] as u32) << 24);
         Ok(value)
     }
 
