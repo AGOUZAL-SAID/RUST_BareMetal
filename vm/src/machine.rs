@@ -286,7 +286,6 @@ impl Machine {
     }
     fn is_last(&mut self, r0 :usize)-> Result<()>{
         if r0  >= MEMORY_SIZE {
-            println!("hehe");
             self.set_reg(0, MEMORY_SIZE as u32)?;
             return Err(Error::MemoryOverflow)}
         Ok(())
