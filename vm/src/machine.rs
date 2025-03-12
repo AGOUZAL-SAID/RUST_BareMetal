@@ -1,4 +1,3 @@
-//use core::error;
 use std::io::{self, Write};
 
 pub const MEMORY_SIZE: usize = 4096;
@@ -85,8 +84,7 @@ impl Machine {
         match opcode {
             1 => {
                 self.set_reg(0, (r0 + 4) as u32)?;
-                if r0+4>= MEMORY_SIZE {return Ok(false);}
-                self.is_last(r0+4)?;
+                self.is_last(r0+3)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
@@ -95,7 +93,7 @@ impl Machine {
             }
             2 => {
                 self.set_reg(0, (r0 + 3) as u32)?;
-                self.is_last(r0+3)?;
+                self.is_last(r0+2)?;
                 let rs1: u8 = mem[r0 + 1];
                 let rs2: u8 = mem[r0 + 2];
                 self.store(rs1, rs2)?;
@@ -103,7 +101,7 @@ impl Machine {
             }
             3 => {
                 self.set_reg(0, (r0 + 3) as u32)?;
-                self.is_last(r0+3)?;
+                self.is_last(r0+2)?;
                 let rs1: u8 = mem[r0 + 1];
                 let rs2: u8 = mem[r0 + 2];
                 self.load(rs1, rs2)?;
@@ -111,7 +109,7 @@ impl Machine {
             }
             4 => {
                 self.set_reg(0, (r0 + 4) as u32)?;
-                self.is_last(r0+4)?;
+                self.is_last(r0+3)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
@@ -121,7 +119,7 @@ impl Machine {
 
             5 => {
                 self.set_reg(0, (r0 + 4) as u32)?;
-                self.is_last(r0+4)?;
+                self.is_last(r0+3)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
@@ -132,7 +130,7 @@ impl Machine {
 
             6 => {
                 self.set_reg(0, (r0 + 2) as u32)?;
-                self.is_last(r0+2)?;
+                self.is_last(r0+1)?;
                 let rs1: u8 = mem[r0 + 1];
                 self.out(rs1, fd)?;
                 Ok(false)
@@ -144,7 +142,7 @@ impl Machine {
 
             8 => {
                 self.set_reg(0, (r0 + 2) as u32)?;
-                self.is_last(r0+2)?;
+                self.is_last(r0+1)?;
                 let rs1: u8 = mem[r0 + 1];
                 self.out_number(rs1, fd)?;
                 Ok(false)
@@ -274,7 +272,7 @@ impl Machine {
             Ok(_) => Ok(()),
         }
     }
-
+    /// instruction out_number
     fn out_number<T: Write>(& self, rs1: u8, fd: &mut T) -> Result<()> {
         let data = self.get_reg(rs1 as usize)?;
         let value = data as i32;
@@ -284,6 +282,7 @@ impl Machine {
             Ok(_) => Ok(()),
         }
     }
+    // verify that the instruction is not well placed in memory
     fn is_last(&mut self, r0 :usize)-> Result<()>{
         if r0  >= MEMORY_SIZE {
             self.set_reg(0, MEMORY_SIZE as u32)?;
