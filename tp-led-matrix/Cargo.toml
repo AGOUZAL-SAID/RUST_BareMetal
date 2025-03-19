@@ -4,4 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+embassy-stm32 = { version = "0.2.0", features = ["stm32l475vg"] }
 micromath = "2.1.0"
+panic-halt = "1.0.0"
+cortex-m-rt = "0.7.5"
+
+[[bin]]
+name = "tp-led-matrix"
+
