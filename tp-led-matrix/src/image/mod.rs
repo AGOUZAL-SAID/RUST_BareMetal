@@ -1,8 +1,10 @@
 use crate::gamma::gamma_correct;
+use core::mem;
 use core::ops::Mul;
-
-
+use micromath::F32Ext as _;
+/********************************************* Color Part ***********************************************************/
 #[derive(Copy, Clone, Default)]
+#[repr(C)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -12,24 +14,6 @@ pub struct Color {
 pub const RED: Color = Color { r: 255, g: 0, b: 0 };
 pub const GREEN: Color = Color { r: 0, g: 255, b: 0 };
 pub const BLUE: Color = Color { r: 0, g: 0, b: 255 };
-
-pub fn floor(nb: f32) -> u32 {
-    let mut i: f32 = 0 as f32;
-    let mut entier: u32 = 0;
-    loop {
-        if i > nb {
-            if entier == 0 {
-                return 0;
-            } else {
-                return entier - 1;
-            }
-        }
-        i += 1.0;
-        entier += 1;
-    }
-}
-
-
 
 impl Color {
     pub fn gamma_correct(&self) -> Self {
@@ -45,22 +29,20 @@ impl Color {
     }
 }
 
-
 impl core::ops::Mul<f32> for Color {
     type Output = Color;
     // Required method
     fn mul(self, rhs: f32) -> Self::Output {
-        let g: u32 = self.g as u32 * floor(rhs);
-        let b: u32 = self.g as u32 * floor(rhs);
-        let r: u32 = self.g as u32 * floor(rhs);
+        let g: f32 = (self.g as f32 * rhs).clamp(0.0, 255.0).round();
+        let b: f32 = (self.b as f32 * rhs).clamp(0.0, 255.0).round();
+        let r: f32 = (self.r as f32 * rhs).clamp(0.0, 255.0).round();
         Color {
-            r: (r) as u8,
-            g: (g) as u8,
-            b: (b) as u8,
+            r: r as u8,
+            g: g as u8,
+            b: b as u8,
         }
     }
 }
-
 
 impl core::ops::Div<f32> for Color {
     type Output = Color;
@@ -72,4 +54,70 @@ impl core::ops::Div<f32> for Color {
         self.mul(1_f32 / rhs)
     }
 }
-pub struct Image;
+/************************************************* Image Part *****************************************************/
+#[repr(transparent)]
+pub struct Image([Color; 64]);
+
+impl Image {
+    pub fn new_solid(color: Color) -> Self {
+        Image([color; 64])
+    }
+    pub fn row(&self, row: usize) -> &[Color] {
+        if row > 7 {
+            panic!("invalid row U Monster")
+        }
+        &self.0[row..(row + 1) * 8]
+    }
+    pub fn gradient(color: Color) -> Self {
+        let mut im: Image = Default::default();
+
+        for i in 0..=7 {
+            for j in 0..=7 {
+                let nb: f32 = (1 + i * i + j) as f32;
+                im[(i, j)] = color / nb;
+            }
+        }
+        im
+    }
+}
+
+impl Default for Image {
+    fn default() -> Self {
+        let color: Color = Default::default();
+        Image([color; 64])
+    }
+}
+
+impl core::ops::Index<(usize, usize)> for Image {
+    type Output = Color;
+
+    // Required method
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        if index.0 > 7 || index.1 > 7 {
+            panic!("invalide row or column U Monster")
+        }
+        &self.0[index.0 * 8 + index.1]
+    }
+}
+
+impl core::ops::IndexMut<(usize, usize)> for Image {
+    // Required method
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        if index.0 > 7 || index.1 > 7 {
+            panic!("invalide row or column U Monster")
+        }
+        &mut self.0[index.0 * 8 + index.1]
+    }
+}
+
+impl AsRef<[u8; 192]> for Image {
+    fn as_ref(&self) -> &[u8; 192] {
+        unsafe { mem::transmute::<&[Color; 64], &[u8; 192]>(&self.0) }
+    }
+}
+
+impl AsMut<[u8; 192]> for Image {
+    fn as_mut(&mut self) -> &mut [u8; 192] {
+        unsafe { mem::transmute::<&mut [Color; 64], &mut [u8; 192]>(&mut self.0) }
+    }
+}
