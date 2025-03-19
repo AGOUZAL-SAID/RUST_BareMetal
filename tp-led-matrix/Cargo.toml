@@ -9,6 +9,8 @@ embassy-stm32 = { version = "0.2.0", features = ["stm32l475vg"] }
 micromath = "2.1.0"
 panic-halt = "1.0.0"
 cortex-m-rt = "0.7.5"
+rtt-target = "0.6.1"
+panic-rtt-target = "0.2.0"
 
 [[bin]]
 name = "tp-led-matrix"
