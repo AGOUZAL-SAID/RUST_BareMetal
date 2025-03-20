@@ -1,5 +1,6 @@
-use cortex_m::asm::delay;
-use embassy_stm32::{gpio::*, peripherals::{PA15, PA2, PA3, PA4, PA5, PA6, PA7, PB0, PB1, PB2, PC3, PC4, PC5}, time::MaybeHertz};
+use embassy_stm32::{gpio::*, peripherals::{PA15, PA2, PA3, PA4, PA5, PA6, PA7, PB0, PB1, PB2, PC3, PC4, PC5}};
+use embedded_hal::delay::DelayNs as _;
+use embassy_time::Delay;
 use crate::{Color, Image};
 
 pub struct Matrix<'a> {
@@ -57,7 +58,7 @@ impl Matrix<'_> {
         my_matrix.sck.set_low();
         my_matrix.sda.set_low();
         for i in 0..8{my_matrix.rows[i].set_low();}
-        delay(40_000_000);
+        Delay.delay_ms(100);
         my_matrix.rst.set_high();
         my_matrix.init_bank0();
         my_matrix.sb.set_high();
@@ -67,14 +68,12 @@ impl Matrix<'_> {
     /// Make a brief high pulse of the SCK pin
     fn pulse_sck(&mut self) {
         self.sck.set_high();
-        delay(1);
         self.sck.set_low();
     }
 
     /// Make a brief low pulse of the LAT pin
     fn pulse_lat(&mut self) {
         self.lat.set_low();
-        delay(1);
         self.lat.set_high();
     }
 
@@ -90,13 +89,18 @@ impl Matrix<'_> {
     /// must be applied to every pixel before sending them. The previous row must
     /// be deactivated and the new one activated.
     pub fn send_row(&mut self, row: usize, pixels: &[Color]) {
-        self.deactivate_rows();
-        self.activate_row(row);
-        for i in 0..8{
-            self.send_byte(pixels[i].b);
-            self.send_byte(pixels[i].g);
-            self.send_byte(pixels[i].r);
+        if row>7 {panic!("enter a valide row U monster")}
+        match row {
+            0 => self.deactivate_row(7),
+            _ => self.deactivate_row(row-1),
         }
+        for i in 0..8{
+            let correct_gamma = pixels[i].gamma_correct();
+            self.send_byte(correct_gamma.b);
+            self.send_byte(correct_gamma.g);
+            self.send_byte(correct_gamma.r);
+        }
+        self.activate_row(row);
         self.pulse_lat();
     }
 
@@ -115,9 +119,10 @@ impl Matrix<'_> {
         // Do not forget that image.row(n) gives access to the content of row n,
         // and that self.send_row() uses the same format.
         loop{
-        for i in 0..8  {
-            self.send_row(i, image.row(i));
-        }}
+            for i in 0..8  {
+                self.send_row(i, image.row(i));
+            }
+        }
     }
     pub fn deactivate_rows(& mut self){
         for i in 0..8 {self.rows[i].set_low();}
@@ -130,12 +135,16 @@ impl Matrix<'_> {
         }
         self.rows[i].set_high();
     }
+    pub fn deactivate_row(& mut self, i:usize){
+        if i>7 {
+            self.deactivate_rows();
+            panic!("enter a valide row U monster")
+        }
+        self.rows[i].set_low();
+    }
 
     pub fn sda(& mut self, i :u8){
-        match i {
-            1 => self.sda.set_high(),
-            0 => self.sda.set_low(),
-            _ => panic!("invalide state U monster!")
-        }
+        if i>0 {self.sda.set_high();}
+        else {self.sda.set_low();}
     }
 }
