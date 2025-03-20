@@ -9,9 +9,17 @@ embassy-stm32 = { version = "0.2.0", features = ["stm32l475vg"] }
 micromath = "2.1.0"
 panic-halt = "1.0.0"
 cortex-m-rt = "0.7.5"
-rtt-target = "0.6.1"
-panic-rtt-target = "0.2.0"
+defmt = "0.3.10"
+defmt-rtt = "0.4.1"
+panic-probe = { version = "0.3.2", features = ["print-defmt"] }
 
 [[bin]]
 name = "tp-led-matrix"
+
+[profile.release]
+debug = true      # symbols are nice and they don't increase the size on the target
+lto = true        # better optimizations
+codegen-units = 1 # better optimizations
+
+runner = "probe-rs run --chip stm32l475vgtx"
 
