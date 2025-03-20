@@ -27,7 +27,7 @@ fn main() -> ! {
         divr: Some(PllRDiv::DIV2), // 16 * 10 / 2 = 80MHz
     });
     config.rcc.sys = Sysclk::PLL1_R;
-    embassy_stm32::init(config);
+    let p =embassy_stm32::init(config);
 
     panic!("Everything configured");
 }
