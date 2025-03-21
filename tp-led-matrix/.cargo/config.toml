@@ -1,6 +1,6 @@
 [build]
 target = "thumbv7em-none-eabihf" # Cortex-M4F/M7F (with FPU)
-cortex-m-rt = "0.7.5"
+
 [target.'cfg(all(target_arch = "arm", target_os = "none"))']
 rustflags = ["-C", "link-arg=-Tlink.x","-C", "link-arg=-Tdefmt.x"]
 runner = "probe-rs run --chip stm32l475vgtx"

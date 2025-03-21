@@ -23,5 +23,4 @@ debug = true      # symbols are nice and they don't increase the size on the tar
 lto = true        # better optimizations
 codegen-units = 1 # better optimizations
 
-runner = "probe-rs run --chip stm32l475vgtx"
 

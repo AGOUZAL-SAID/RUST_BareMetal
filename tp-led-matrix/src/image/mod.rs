@@ -66,7 +66,7 @@ impl Image {
         if row > 7 {
             panic!("invalid row U Monster")
         }
-        &self.0[row*8..(row + 1) * 8]
+        &self.0[row * 8..(row + 1) * 8]
     }
     pub fn gradient(color: Color) -> Self {
         let mut im: Image = Default::default();
