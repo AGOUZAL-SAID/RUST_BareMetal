@@ -9,8 +9,8 @@ use embassy_stm32::rcc::*;
 use panic_probe as _;
 use tp_led_matrix::Image;
 use tp_led_matrix::image::BLUE;
-use tp_led_matrix::matrix::Matrix;
-
+use tp_led_matrix::matrix::{Matrix,blinker};
+use embassy_time::Timer;
 #[embassy_executor::main]
 async fn main(_s: embassy_executor::Spawner) -> ! {
     defmt::info!("defmt correctly initialized");
@@ -38,5 +38,6 @@ async fn main(_s: embassy_executor::Spawner) -> ! {
         p.PA2, p.PA3, p.PA4, p.PA5, p.PA6, p.PA7, p.PA15, p.PB0, p.PB1, p.PB2, p.PC3, p.PC4, p.PC5,
     );
     my_matrix.await.display_image(&im);
-    panic!("Everything configured");
+    _s.spawn(blinker(p.PB14)).unwrap();
+    loop {Timer::after_millis(3000).await;}
 }
