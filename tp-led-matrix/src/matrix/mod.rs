@@ -3,8 +3,7 @@ use embassy_stm32::{
     gpio::*,
     peripherals::{PA2, PA3, PA4, PA5, PA6, PA7, PA15, PB0, PB1, PB2, PC3, PC4, PC5},
 };
-use embassy_time::Delay;
-use embedded_hal::delay::DelayNs as _;
+use embassy_time::Timer;
 
 pub struct Matrix<'a> {
     sb: Output<'a>,
@@ -23,7 +22,7 @@ impl Matrix<'_> {
     /// newly constructed structure.
     /// The pins will be set to very high speed mode.
     #[allow(clippy::too_many_arguments)] // Necessary to avoid a clippy warning
-    pub fn new(
+    pub async fn new(
         pa2: PA2,
         pa3: PA3,
         pa4: PA4,
@@ -69,7 +68,7 @@ impl Matrix<'_> {
         for i in 0..8 {
             my_matrix.rows[i].set_low();
         }
-        Delay.delay_ms(100);
+        Timer::after_millis(100).await;
         my_matrix.rst.set_high();
         my_matrix.init_bank0();
         my_matrix.sb.set_high();
@@ -133,10 +132,16 @@ impl Matrix<'_> {
     pub fn display_image(&mut self, image: &Image) {
         // Do not forget that image.row(n) gives access to the content of row n,
         // and that self.send_row() uses the same format.
+        // for not used to make program the more fast possible
         loop {
-            for i in 0..8 {
-                self.send_row(i, image.row(i));
-            }
+            self.send_row(0, image.row(0));
+            self.send_row(1, image.row(1));
+            self.send_row(2, image.row(2));
+            self.send_row(3, image.row(3));
+            self.send_row(4, image.row(4));
+            self.send_row(5, image.row(5));
+            self.send_row(6, image.row(6));
+            self.send_row(7, image.row(7));
         }
     }
     pub fn deactivate_rows(&mut self) {

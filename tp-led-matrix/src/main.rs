@@ -1,7 +1,7 @@
+#![feature(type_alias_impl_trait)]
 #![no_std]
 #![no_main]
 
-use cortex_m_rt::entry;
 use defmt_rtt as _;
 use embassy_stm32 as _; // Just to link it in the executable (it provides the vector table)
 use embassy_stm32::Config;
@@ -11,8 +11,8 @@ use tp_led_matrix::Image;
 use tp_led_matrix::image::BLUE;
 use tp_led_matrix::matrix::Matrix;
 
-#[entry]
-fn main() -> ! {
+#[embassy_executor::main]
+async fn main(_s: embassy_executor::Spawner) -> ! {
     defmt::info!("defmt correctly initialized");
 
     // Setup the clocks at 80MHz using HSI (by default since HSE/MSI
@@ -34,9 +34,9 @@ fn main() -> ! {
     let bleu = BLUE;
 
     let im = Image::gradient(bleu);
-    let mut my_matrix = Matrix::new(
+    let my_matrix = Matrix::new(
         p.PA2, p.PA3, p.PA4, p.PA5, p.PA6, p.PA7, p.PA15, p.PB0, p.PB1, p.PB2, p.PC3, p.PC4, p.PC5,
     );
-    my_matrix.display_image(&im);
+    my_matrix.await.display_image(&im);
     panic!("Everything configured");
 }
