@@ -1,12 +1,12 @@
 use crate::{Color, Image};
 use embassy_stm32::{
     gpio::*,
-    peripherals::{PA15, PA2, PA3, PA4, PA5, PA6, PA7, PB0, PB1, PB14, PB2, PC3, PC4, PC5},
+    peripherals::{PA2, PA3, PA4, PA5, PA6, PA7, PA15, PB0, PB1, PB2, PB14, PC3, PC4, PC5},
 };
 use embassy_time::Timer;
 #[embassy_executor::task]
-pub async fn blinker(pb14:PB14){
-    let mut pin_led = Output::new(pb14, Level::Low, Speed::VeryHigh);   
+pub async fn blinker(pb14: PB14) {
+    let mut pin_led = Output::new(pb14, Level::Low, Speed::VeryHigh);
     loop {
         pin_led.set_high();
         Timer::after_millis(100).await;
@@ -19,7 +19,7 @@ pub async fn blinker(pb14:PB14){
         pin_led.set_high();
         Timer::after_millis(100).await;
         pin_led.set_low();
-        Timer::after_millis(1000).await;            
+        Timer::after_millis(1000).await;
     }
 }
 pub struct Matrix<'a> {
@@ -144,7 +144,7 @@ impl Matrix<'_> {
         }
         self.pulse_lat();
     }
-    
+
     /// Display a full image, row by row, as fast as possible.
     pub fn display_image(&mut self, image: &Image) {
         // Do not forget that image.row(n) gives access to the content of row n,
@@ -160,7 +160,7 @@ impl Matrix<'_> {
             self.send_row(6, image.row(6));
             self.send_row(7, image.row(7));
         }
-    } 
+    }
     pub fn deactivate_rows(&mut self) {
         for i in 0..8 {
             self.rows[i].set_low();
@@ -189,5 +189,4 @@ impl Matrix<'_> {
             self.sda.set_low();
         }
     }
-    
 }
