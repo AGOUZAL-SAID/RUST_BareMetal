@@ -3,7 +3,14 @@ use embassy_stm32::{
     gpio::*,
     peripherals::{PA2, PA3, PA4, PA5, PA6, PA7, PA15, PB0, PB1, PB2, PB14, PC3, PC4, PC5},
 };
-use embassy_time::Timer;
+use embassy_time::{Timer,Duration,Ticker};
+#[embassy_executor::task]
+pub async fn display(mut matrix : Matrix<'static>, image:  Image){
+    let mut ticker = Ticker::every(Duration::from_hz(80*8)); 
+    loop {
+        matrix.display_image(&image, &mut ticker).await;
+    }
+}
 #[embassy_executor::task]
 pub async fn blinker(pb14: PB14) {
     let mut pin_led = Output::new(pb14, Level::Low, Speed::VeryHigh);
@@ -31,7 +38,7 @@ pub struct Matrix<'a> {
     rows: [Output<'a>; 8],
 }
 
-impl Matrix<'_> {
+impl Matrix<'static> {
     /// Create a new matrix from the control registers and the individual
     /// unconfigured pins. SB and LAT will be set high by default, while
     /// other pins will be set low. After 100ms, RST will be set high, and
@@ -146,20 +153,14 @@ impl Matrix<'_> {
     }
 
     /// Display a full image, row by row, as fast as possible.
-    pub fn display_image(&mut self, image: &Image) {
+    pub async  fn display_image(&mut self, image: &Image, ticker :& mut Ticker ) {
         // Do not forget that image.row(n) gives access to the content of row n,
         // and that self.send_row() uses the same format.
         // for not used to make program the more fast possible
-        loop {
-            self.send_row(0, image.row(0));
-            self.send_row(1, image.row(1));
-            self.send_row(2, image.row(2));
-            self.send_row(3, image.row(3));
-            self.send_row(4, image.row(4));
-            self.send_row(5, image.row(5));
-            self.send_row(6, image.row(6));
-            self.send_row(7, image.row(7));
-        }
+        for i in 0..8 {
+            self.send_row(i, image.row(i));
+            ticker.next().await;
+            }
     }
     pub fn deactivate_rows(&mut self) {
         for i in 0..8 {

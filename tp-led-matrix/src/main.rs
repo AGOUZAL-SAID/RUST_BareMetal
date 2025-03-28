@@ -9,7 +9,7 @@ use embassy_stm32::rcc::*;
 use panic_probe as _;
 use tp_led_matrix::Image;
 use tp_led_matrix::image::BLUE;
-use tp_led_matrix::matrix::{Matrix, blinker};
+use tp_led_matrix::matrix::{Matrix, blinker,display};
 #[embassy_executor::main]
 async fn main(s: embassy_executor::Spawner) {
     defmt::info!("defmt correctly initialized");
@@ -33,9 +33,10 @@ async fn main(s: embassy_executor::Spawner) {
     let bleu = BLUE;
 
     let im = Image::gradient(bleu);
-    let my_matrix = Matrix::new(
+    let  my_matrix = Matrix::new(
         p.PA2, p.PA3, p.PA4, p.PA5, p.PA6, p.PA7, p.PA15, p.PB0, p.PB1, p.PB2, p.PC3, p.PC4, p.PC5,
-    );
-    my_matrix.await.display_image(&im);
+    ).await;
+    //my_matrix.display_image(&im);
     s.spawn(blinker(p.PB14)).unwrap();
+    s.spawn(display(my_matrix, im)).unwrap();
     }
