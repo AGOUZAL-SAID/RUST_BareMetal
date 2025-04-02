@@ -1,15 +1,20 @@
 #![feature(type_alias_impl_trait)]
 #![no_std]
 #![no_main]
-
+use embassy_sync::mutex::Mutex;
+use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
 use defmt_rtt as _;
 use embassy_stm32 as _; // Just to link it in the executable (it provides the vector table)
 use embassy_stm32::Config;
 use embassy_stm32::rcc::*;
+use embassy_time::Timer;
 use panic_probe as _;
+use tp_led_matrix::image::{BLACK,GREEN,RED,BLUE};
 use tp_led_matrix::Image;
-use tp_led_matrix::image::BLUE;
-use tp_led_matrix::matrix::{Matrix, blinker,display};
+use tp_led_matrix::matrix::Matrix;
+use tp_led_matrix::tasks::{blinker,display};
+
+static IMAGE: Mutex<ThreadModeRawMutex, Image> = Mutex::new(Image::new_solid(BLACK));
 #[embassy_executor::main]
 async fn main(s: embassy_executor::Spawner) {
     defmt::info!("defmt correctly initialized");
@@ -30,13 +35,32 @@ async fn main(s: embassy_executor::Spawner) {
     config.rcc.sys = Sysclk::PLL1_R;
     let p = embassy_stm32::init(config);
 
-    let bleu = BLUE;
-
-    let im = Image::gradient(bleu);
     let  my_matrix = Matrix::new(
         p.PA2, p.PA3, p.PA4, p.PA5, p.PA6, p.PA7, p.PA15, p.PB0, p.PB1, p.PB2, p.PC3, p.PC4, p.PC5,
     ).await;
     //my_matrix.display_image(&im);
     s.spawn(blinker(p.PB14)).unwrap();
-    s.spawn(display(my_matrix, im)).unwrap();
+    s.spawn(display(my_matrix, &IMAGE)).unwrap();
+    loop{
+        Timer::after_millis(1000).await;
+        {
+        let mut im =  IMAGE.lock().await;
+        *im = Image::new_solid(GREEN);
+        }
+        Timer::after_millis(1000).await;
+        {
+        let mut im =  IMAGE.lock().await;
+        *im = Image::new_solid(BLUE);
+        }
+        Timer::after_millis(1000).await;
+        {
+        let mut im =  IMAGE.lock().await;
+        *im = Image::new_solid(RED);
+        }
+        Timer::after_millis(1000).await;
+        {
+        let mut im =  IMAGE.lock().await;
+        *im = Image::new_solid(BLACK);
+        }
+    }
     }

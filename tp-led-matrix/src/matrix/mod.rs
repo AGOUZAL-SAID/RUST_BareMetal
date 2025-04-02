@@ -1,34 +1,11 @@
-use crate::{Color, Image};
+
+use crate:: {Color, Image};
 use embassy_stm32::{
     gpio::*,
-    peripherals::{PA2, PA3, PA4, PA5, PA6, PA7, PA15, PB0, PB1, PB2, PB14, PC3, PC4, PC5},
+    peripherals::{PA2, PA3, PA4, PA5, PA6, PA7, PA15, PB0, PB1, PB2, PC3, PC4, PC5},
 };
-use embassy_time::{Timer,Duration,Ticker};
-#[embassy_executor::task]
-pub async fn display(mut matrix : Matrix<'static>, image:  Image){
-    let mut ticker = Ticker::every(Duration::from_hz(80*8)); 
-    loop {
-        matrix.display_image(&image, &mut ticker).await;
-    }
-}
-#[embassy_executor::task]
-pub async fn blinker(pb14: PB14) {
-    let mut pin_led = Output::new(pb14, Level::Low, Speed::VeryHigh);
-    loop {
-        pin_led.set_high();
-        Timer::after_millis(100).await;
-        pin_led.set_low();
-        Timer::after_millis(100).await;
-        pin_led.set_high();
-        Timer::after_millis(100).await;
-        pin_led.set_low();
-        Timer::after_millis(100).await;
-        pin_led.set_high();
-        Timer::after_millis(100).await;
-        pin_led.set_low();
-        Timer::after_millis(1000).await;
-    }
-}
+use embassy_time::{Timer,Ticker};
+
 pub struct Matrix<'a> {
     sb: Output<'a>,
     lat: Output<'a>,
