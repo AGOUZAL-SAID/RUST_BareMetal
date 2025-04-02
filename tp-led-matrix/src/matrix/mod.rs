@@ -1,10 +1,9 @@
-
-use crate:: {Color, Image};
+use crate::{Color, Image};
 use embassy_stm32::{
     gpio::*,
     peripherals::{PA2, PA3, PA4, PA5, PA6, PA7, PA15, PB0, PB1, PB2, PC3, PC4, PC5},
 };
-use embassy_time::{Timer,Ticker};
+use embassy_time::{Ticker, Timer};
 
 pub struct Matrix<'a> {
     sb: Output<'a>,
@@ -107,7 +106,7 @@ impl Matrix<'static> {
             0 => self.deactivate_row(7),
             _ => self.deactivate_row(row - 1),
         }
-        for pixel in pixels.iter().take(8) {
+        for pixel in pixels.iter().rev().take(8) {
             let correct_gamma = pixel.gamma_correct();
             self.send_byte(correct_gamma.b);
             self.send_byte(correct_gamma.g);
@@ -130,14 +129,14 @@ impl Matrix<'static> {
     }
 
     /// Display a full image, row by row, as fast as possible.
-    pub async  fn display_image(&mut self, image: &Image, ticker :& mut Ticker ) {
+    pub async fn display_image(&mut self, image: &Image, ticker: &mut Ticker) {
         // Do not forget that image.row(n) gives access to the content of row n,
         // and that self.send_row() uses the same format.
         // for not used to make program the more fast possible
         for i in 0..8 {
             self.send_row(i, image.row(i));
             ticker.next().await;
-            }
+        }
     }
     pub fn deactivate_rows(&mut self) {
         for i in 0..8 {

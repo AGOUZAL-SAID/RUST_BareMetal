@@ -1,3 +1,5 @@
 target/
 /vm/src/always_do.txt
 **/.vscode/
+*.bin
+*.sh

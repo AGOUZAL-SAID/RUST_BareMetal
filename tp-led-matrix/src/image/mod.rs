@@ -14,7 +14,7 @@ pub struct Color {
 pub const RED: Color = Color { r: 255, g: 0, b: 0 };
 pub const GREEN: Color = Color { r: 0, g: 255, b: 0 };
 pub const BLUE: Color = Color { r: 0, g: 0, b: 255 };
-pub const BLACK :Color = Color{ r:0, g:0, b:0 };
+pub const BLACK: Color = Color { r: 0, g: 0, b: 0 };
 
 impl Color {
     pub fn gamma_correct(&self) -> Self {
@@ -60,10 +60,10 @@ impl core::ops::Div<f32> for Color {
 pub struct Image([Color; 64]);
 
 impl Image {
-    pub fn new_im(buffer : [Color;64]) -> Self {
+    pub fn new_im(buffer: [Color; 64]) -> Self {
         Image(buffer)
     }
-    pub const  fn new_solid(color: Color) -> Self {
+    pub const fn new_solid(color: Color) -> Self {
         Image([color; 64])
     }
     pub fn row(&self, row: usize) -> &[Color] {
