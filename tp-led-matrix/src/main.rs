@@ -6,8 +6,6 @@ use embassy_stm32 as _; // Just to link it in the executable (it provides the ve
 use embassy_stm32::Config;
 use embassy_stm32::rcc::*;
 use panic_probe as _;
-use tp_led_matrix::image::BLUE;
-use tp_led_matrix::image::GREEN;
 use tp_led_matrix::image::RED;
 use tp_led_matrix::matrix::Matrix;
 use tp_led_matrix::NEXT_IMAGE;
@@ -15,7 +13,6 @@ use tp_led_matrix::{Image,POOL};
 use tp_led_matrix::tasks::serial_receiver;
 use tp_led_matrix::tasks::{blinker, display};
 use heapless::pool::boxed::BoxBlock;
-use embassy_time::Timer;
 
 #[embassy_executor::main]
 async fn main(s: embassy_executor::Spawner) {
@@ -40,9 +37,6 @@ async fn main(s: embassy_executor::Spawner) {
 
     let mut config_uart = embassy_stm32::usart::Config::default();
     config_uart.baudrate = 38_400;
-    config_uart.data_bits = embassy_stm32::usart::DataBits::DataBits8;
-    config_uart.parity = embassy_stm32::usart::Parity::ParityNone;
-    config_uart.stop_bits = embassy_stm32::usart::StopBits::STOP1;
 
     let my_matrix = Matrix::new(
         p.PA2, p.PA3, p.PA4, p.PA5, p.PA6, p.PA7, p.PA15, p.PB0, p.PB1, p.PB2, p.PC3, p.PC4, p.PC5,
@@ -69,18 +63,8 @@ async fn main(s: embassy_executor::Spawner) {
     .unwrap();
     s.spawn(blinker(p.PB14)).unwrap();
     s.spawn(display(my_matrix)).unwrap();
-    loop{
-        if let Ok(pool) = POOL.alloc(Image::gradient(RED.gamma_correct())){
-            NEXT_IMAGE.signal(pool);
-        }
-        Timer::after_millis(1000).await;
-        if let Ok(pool) = POOL.alloc(Image::gradient(GREEN.gamma_correct())){
-            NEXT_IMAGE.signal(pool);
-        }
-        Timer::after_millis(1000).await;
-        if let Ok(pool) = POOL.alloc(Image::gradient(BLUE.gamma_correct())){
-            NEXT_IMAGE.signal(pool);
-        }
-        Timer::after_millis(1000).await;
+
+    if let Ok(pool) = POOL.alloc(Image::gradient(RED.gamma_correct())){
+        NEXT_IMAGE.signal(pool);
     }
 }

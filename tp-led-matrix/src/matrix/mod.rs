@@ -134,8 +134,8 @@ impl Matrix<'static> {
         // and that self.send_row() uses the same format.
         // for not used to make program the more fast possible
         for i in 0..8 {
-            self.send_row(i, image.row(i));
             ticker.next().await;
+            self.send_row(i, image.row(i));
         }
     }
     pub fn deactivate_rows(&mut self) {
@@ -144,18 +144,10 @@ impl Matrix<'static> {
         }
     }
 
-    pub fn activate_row(&mut self, i: usize) {
-        if i > 7 {
-            self.deactivate_rows();
-            panic!("enter a valide row U monster")
-        }
+    pub fn activate_row(&mut self, i: usize) { 
         self.rows[i].set_high();
     }
     pub fn deactivate_row(&mut self, i: usize) {
-        if i > 7 {
-            self.deactivate_rows();
-            panic!("enter a valide row U monster")
-        }
         self.rows[i].set_low();
     }
 

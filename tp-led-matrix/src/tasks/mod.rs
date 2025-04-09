@@ -1,5 +1,7 @@
-use crate::{Color, Image};
-use crate::{NEXT_IMAGE,IMAGE, matrix::Matrix};
+use core::panic;
+
+use crate::{Color, Image, POOL};
+use crate::{NEXT_IMAGE, matrix::Matrix};
 use futures::future::FutureExt;
 use embassy_stm32::{gpio::*, peripherals::PB14};
 use embassy_stm32::{
@@ -58,17 +60,22 @@ pub async fn serial_receiver(
     });
     let mut usart1: Uart<'static, embassy_stm32::mode::Async> =
         Uart::new(usart, pb7, pb6, Irqs, dma1_tx, dma1_rx, config_uart).unwrap();
-    let mut buffer: [u8; 192] = [0; 192];
     let mut word: [u8; 1] = [0; 1];
     let mut count = 0;
     loop {
+        let mut image;
+
+        if let Ok(pool) = POOL.alloc(Image::default()){image = pool;} else {
+            panic!("Is not BOX<POOL>");}
+        
         usart1.read(&mut word).await.unwrap();
         if word[0] == 0xff {
-            usart1.read(&mut buffer).await.unwrap();
+            usart1.read(image.as_mut()).await.unwrap();
+
             loop {
-                if buffer[count] == 0xff {
-                    buffer.rotate_left(count + 1);
-                    usart1.read(&mut buffer[count + 1..]).await.unwrap();
+                if image.as_mut()[count] == 0xff {
+                    image.as_mut().rotate_left(count + 1);
+                    usart1.read(&mut image.as_mut()[192 -count - 1..]).await.unwrap();
                     count = 0;
                 } else if count == 191 {
                     count = 0;
@@ -77,10 +84,7 @@ pub async fn serial_receiver(
                     count += 1;
                 }
             }
-        }
-        {
-            let mut im = IMAGE.lock().await;
-            *im.as_mut() = buffer;
+            NEXT_IMAGE.signal(image);
         }
     }
 }
