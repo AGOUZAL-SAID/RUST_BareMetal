@@ -6,9 +6,16 @@ use embassy_stm32 as _; // Just to link it in the executable (it provides the ve
 use embassy_stm32::Config;
 use embassy_stm32::rcc::*;
 use panic_probe as _;
+use tp_led_matrix::image::BLUE;
+use tp_led_matrix::image::GREEN;
+use tp_led_matrix::image::RED;
 use tp_led_matrix::matrix::Matrix;
+use tp_led_matrix::NEXT_IMAGE;
+use tp_led_matrix::{Image,POOL};
 use tp_led_matrix::tasks::serial_receiver;
 use tp_led_matrix::tasks::{blinker, display};
+use heapless::pool::boxed::BoxBlock;
+use embassy_time::Timer;
 
 #[embassy_executor::main]
 async fn main(s: embassy_executor::Spawner) {
@@ -41,7 +48,16 @@ async fn main(s: embassy_executor::Spawner) {
         p.PA2, p.PA3, p.PA4, p.PA5, p.PA6, p.PA7, p.PA15, p.PB0, p.PB1, p.PB2, p.PC3, p.PC4, p.PC5,
     )
     .await;
-
+    unsafe {
+        const BLOCK: BoxBlock<Image> = BoxBlock::new();
+        static mut MEMORY: [BoxBlock<Image>; 3] = [BLOCK; 3];
+        // By defaut, mutable reference static data is forbidden. We want
+        // to allow it.
+        #[allow(static_mut_refs)]
+        for block in &mut MEMORY {
+          POOL.manage(block);
+        }
+    }
     s.spawn(serial_receiver(
         p.USART1,
         p.PB7,
@@ -53,4 +69,18 @@ async fn main(s: embassy_executor::Spawner) {
     .unwrap();
     s.spawn(blinker(p.PB14)).unwrap();
     s.spawn(display(my_matrix)).unwrap();
+    loop{
+        if let Ok(pool) = POOL.alloc(Image::gradient(RED.gamma_correct())){
+            NEXT_IMAGE.signal(pool);
+        }
+        Timer::after_millis(1000).await;
+        if let Ok(pool) = POOL.alloc(Image::gradient(GREEN.gamma_correct())){
+            NEXT_IMAGE.signal(pool);
+        }
+        Timer::after_millis(1000).await;
+        if let Ok(pool) = POOL.alloc(Image::gradient(BLUE.gamma_correct())){
+            NEXT_IMAGE.signal(pool);
+        }
+        Timer::after_millis(1000).await;
+    }
 }

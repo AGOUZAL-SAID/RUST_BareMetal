@@ -1,5 +1,6 @@
 use crate::{Color, Image};
-use crate::{IMAGE, matrix::Matrix};
+use crate::{NEXT_IMAGE,IMAGE, matrix::Matrix};
+use futures::future::FutureExt;
 use embassy_stm32::{gpio::*, peripherals::PB14};
 use embassy_stm32::{
     peripherals::{DMA1_CH4, DMA1_CH5, PB6, PB7, USART1},
@@ -10,10 +11,12 @@ use embassy_time::{Duration, Ticker, Timer};
 pub async fn display(mut matrix: Matrix<'static>) {
     let mut ticker = Ticker::every(Duration::from_hz(80 * 8));
     let mut buffer: [Color; 64] = [Color::default(); 64];
-
+    let mut image = NEXT_IMAGE.wait().await;
     loop {
-        {
-            let image = IMAGE.lock().await;
+        {   
+            if let Some(v) = NEXT_IMAGE.wait().now_or_never() {
+                image = v;
+            }
             for row in 0..8 {
                 buffer[row * 8..(row + 1) * 8].copy_from_slice(image.row(row));
             }
@@ -66,7 +69,7 @@ pub async fn serial_receiver(
                 if buffer[count] == 0xff {
                     buffer.rotate_left(count + 1);
                     usart1.read(&mut buffer[count + 1..]).await.unwrap();
-                    count += 1;
+                    count = 0;
                 } else if count == 191 {
                     count = 0;
                     break;
