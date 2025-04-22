@@ -17,10 +17,10 @@ fn main() {
     println!("{}", a);
     assert_eq!(word, "A String object");
     choose_str(a, word, false);
-    // Check Deref for both variants of OOR
-    let s1 = OOR::Owned(String::from("  Hello, world.  "));
+    // Check Deref for both variants of Oor
+    let s1 = Oor::Owned(String::from("  Hello, world.  "));
     assert_eq!(s1.trim(), "Hello, world.");
-    let mut s2 = OOR::Borrowed("  Hello, world!  ");
+    let mut s2 = Oor::Borrowed("  Hello, world!  ");
     assert_eq!(s2.trim(), "Hello, world!");
 
     // Check choose
@@ -30,8 +30,8 @@ fn main() {
     assert_eq!(s.trim(), "Hello, world!");
 
     // Check DerefMut, a borrowed string should become owned
-    assert!(matches!(s1, OOR::Owned(_)));
-    assert!(matches!(s2, OOR::Borrowed(_)));
+    assert!(matches!(s1, Oor::Owned(_)));
+    assert!(matches!(s2, Oor::Borrowed(_)));
     unsafe {
         for c in s2.as_bytes_mut() {
             if *c == b'!' {
@@ -39,33 +39,42 @@ fn main() {
             }
         }
     }
-    assert!(matches!(s2, OOR::Owned(_)));
+    assert!(matches!(s2, Oor::Owned(_)));
     assert_eq!(s2.trim(), "Hello, world?");
 }
-enum OOR<'a> {
-    Owned(String),
-    Borrowed(&'a str),
+// Define an enum that can either own a `String` or borrow a `&str`.
+enum Oor<'a> {
+    Owned(String),     // Owns the string data
+    Borrowed(&'a str), // Borrows the string data
 }
 
-impl Deref for OOR<'_> {
+// Implement the `Deref` trait so that `Oor` can be treated as a `&str`.
+impl Deref for Oor<'_> {
     type Target = str;
+
     fn deref(&self) -> &Self::Target {
         match self {
-            OOR::Owned(word) => word,
-            OOR::Borrowed(word) => word,
+            // If owned, return a reference to the owned string
+            Oor::Owned(word) => word,
+            // If borrowed, return the borrowed string reference
+            Oor::Borrowed(word) => word,
         }
     }
 }
 
-impl DerefMut for OOR<'_> {
+// Implement the `DerefMut` trait to allow mutable access to the inner string.
+// If the variant is `Borrowed`, it will be upgraded to an `Owned` string.
+impl DerefMut for Oor<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        if let OOR::Borrowed(s) = self {
-            *self = OOR::Owned(s.to_string().clone());
+        // If it's borrowed, convert it into an owned `String`
+        if let Oor::Borrowed(s) = self {
+            *self = Oor::Owned(s.to_string().clone());
         }
+
+        // After conversion (or if already owned), return mutable reference to the string
         match self {
-            OOR::Owned(s) => s,
-            _ => unreachable!(),
+            Oor::Owned(s) => s,
+            _ => unreachable!(), // Should never happen since Borrowed was converted
         }
     }
 }
-//`word`

@@ -1,12 +1,24 @@
-#![no_std]
+#![no_std] // Use without the standard library
+
+use embassy_executor::InterruptExecutor;
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
+use embassy_sync::signal::Signal;
+use heapless::pool::boxed::Box;
+
+// Re-exported modules for gamma correction, image handling, matrix driver, and async tasks
 pub mod gamma;
 pub mod image;
 pub mod matrix;
 pub mod tasks;
-pub use image::{Color, Image};
-use heapless::pool::boxed::Box;
-use embassy_sync::signal::Signal;
 
+// Make Color and Image types available at the crate root
+pub use image::{Color, Image};
+
+// Create a heapless pool of boxed Image buffers
 heapless::box_pool!(POOL: Image);
-pub static NEXT_IMAGE: Signal<ThreadModeRawMutex, Box<POOL>> = Signal::new();    
+
+// Signal used to pass the next image buffer between tasks (thread‑safe in main context)
+pub static NEXT_IMAGE: Signal<ThreadModeRawMutex, Box<POOL>> = Signal::new();
+
+// Executor for interrupt‑driven tasks (e.g., display refresh)
+pub static DISPLAY_EXECUTOR: InterruptExecutor = InterruptExecutor::new();

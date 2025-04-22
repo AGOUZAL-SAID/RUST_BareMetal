@@ -76,15 +76,17 @@ impl Machine {
     pub fn step_on<T: Write>(&mut self, fd: &mut T) -> Result<bool> {
         // fetch instruction
         let memory = self.memory();
-        let mut mem = [0;MEMORY_SIZE];
+        let mut mem = [0; MEMORY_SIZE];
         mem.copy_from_slice(memory);
         let r0: usize = self.regs()[0] as usize;
-        if r0 == MEMORY_SIZE {return  Err(Error::InstructionError);}
+        if r0 == MEMORY_SIZE {
+            return Err(Error::InstructionError);
+        }
         let opcode: u8 = mem[r0];
         match opcode {
             1 => {
                 self.set_reg(0, (r0 + 4) as u32)?;
-                self.is_last(r0+3)?;
+                self.is_last(r0 + 3)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
@@ -93,7 +95,7 @@ impl Machine {
             }
             2 => {
                 self.set_reg(0, (r0 + 3) as u32)?;
-                self.is_last(r0+2)?;
+                self.is_last(r0 + 2)?;
                 let rs1: u8 = mem[r0 + 1];
                 let rs2: u8 = mem[r0 + 2];
                 self.store(rs1, rs2)?;
@@ -101,7 +103,7 @@ impl Machine {
             }
             3 => {
                 self.set_reg(0, (r0 + 3) as u32)?;
-                self.is_last(r0+2)?;
+                self.is_last(r0 + 2)?;
                 let rs1: u8 = mem[r0 + 1];
                 let rs2: u8 = mem[r0 + 2];
                 self.load(rs1, rs2)?;
@@ -109,7 +111,7 @@ impl Machine {
             }
             4 => {
                 self.set_reg(0, (r0 + 4) as u32)?;
-                self.is_last(r0+3)?;
+                self.is_last(r0 + 3)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
@@ -119,7 +121,7 @@ impl Machine {
 
             5 => {
                 self.set_reg(0, (r0 + 4) as u32)?;
-                self.is_last(r0+3)?;
+                self.is_last(r0 + 3)?;
                 let rd: u8 = mem[r0 + 1];
                 let rs1: u8 = mem[r0 + 2];
                 let rs2: u8 = mem[r0 + 3];
@@ -130,7 +132,7 @@ impl Machine {
 
             6 => {
                 self.set_reg(0, (r0 + 2) as u32)?;
-                self.is_last(r0+1)?;
+                self.is_last(r0 + 1)?;
                 let rs1: u8 = mem[r0 + 1];
                 self.out(rs1, fd)?;
                 Ok(false)
@@ -142,7 +144,7 @@ impl Machine {
 
             8 => {
                 self.set_reg(0, (r0 + 2) as u32)?;
-                self.is_last(r0+1)?;
+                self.is_last(r0 + 1)?;
                 let rs1: u8 = mem[r0 + 1];
                 self.out_number(rs1, fd)?;
                 Ok(false)
@@ -181,7 +183,7 @@ impl Machine {
     }
 
     /// give a spicique registre
-    pub fn get_reg(& self, reg: usize) -> Result<u32> {
+    pub fn get_reg(&self, reg: usize) -> Result<u32> {
         if reg > 15 {
             return Err(Error::RegistreOverdepass);
         }
@@ -202,7 +204,7 @@ impl Machine {
     }
 
     /// load  an u32 in the memory
-    fn load_mem(& self, addres: usize) -> Result<u32> {
+    fn load_mem(&self, addres: usize) -> Result<u32> {
         if addres + 3 > MEMORY_SIZE {
             return Err(Error::MemoryOverflow);
         }
@@ -254,7 +256,7 @@ impl Machine {
         Ok(())
     }
     /// instruction sub
-    fn sub(& mut self, rd: u8, rs1: u8, rs2: u8) -> Result<()> {
+    fn sub(&mut self, rd: u8, rs1: u8, rs2: u8) -> Result<()> {
         let a = self.get_reg(rs1 as usize)? as i128;
         let b = self.get_reg(rs2 as usize)? as i128;
         let value = (a - b) as u32;
@@ -262,7 +264,7 @@ impl Machine {
         Ok(())
     }
     /// instruction out
-    fn out<T: Write>(& self, rs1: u8, fd: &mut T) -> Result<()> {
+    fn out<T: Write>(&self, rs1: u8, fd: &mut T) -> Result<()> {
         let mut data = self.get_reg(rs1 as usize)?;
         data &= 0xff;
         let value = data as u8 as char;
@@ -273,7 +275,7 @@ impl Machine {
         }
     }
     /// instruction out_number
-    fn out_number<T: Write>(& self, rs1: u8, fd: &mut T) -> Result<()> {
+    fn out_number<T: Write>(&self, rs1: u8, fd: &mut T) -> Result<()> {
         let data = self.get_reg(rs1 as usize)?;
         let value = data as i32;
         let miss = write!(fd, "{value}");
@@ -283,10 +285,11 @@ impl Machine {
         }
     }
     // verify that the instruction is not well placed in memory
-    fn is_last(&mut self, r0 :usize)-> Result<()>{
-        if r0  >= MEMORY_SIZE {
+    fn is_last(&mut self, r0: usize) -> Result<()> {
+        if r0 >= MEMORY_SIZE {
             self.set_reg(0, MEMORY_SIZE as u32)?;
-            return Err(Error::MemoryOverflow)}
+            return Err(Error::MemoryOverflow);
+        }
         Ok(())
     }
 }
