@@ -1,5 +1,4 @@
-use crate::image::{BLUE, GREEN, WHITE};
-use crate::{Color, Image, POOL, image::RED};
+use crate::{Color, Image, POOL};
 use crate::{NEW_IMAGE_RECEIVED, NEXT_IMAGE, matrix::Matrix};
 use core::panic;
 use embassy_stm32::{gpio::*, peripherals::PB14};
@@ -9,6 +8,11 @@ use embassy_stm32::{
 };
 use embassy_time::Instant;
 use embassy_time::{Duration, Ticker, Timer};
+use embedded_graphics::pixelcolor::Rgb888;
+use embedded_graphics::prelude::Point;
+use embedded_graphics::prelude::{RgbColor, Size};
+use embedded_graphics::primitives::Triangle;
+use embedded_graphics::primitives::{Circle, Line, PrimitiveStyle, Rectangle, StyledDrawable};
 use futures::future::FutureExt;
 
 /// Task that pulls the next image from the pool and sends it to the LED matrix.
@@ -120,6 +124,7 @@ pub async fn serial_receiver(
 pub async fn screensaver() {
     // Time of the last received signal
     let mut last_signal = Instant::now();
+
     loop {
         // Non-blocking check for a new signal
         if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
@@ -132,16 +137,21 @@ pub async fn screensaver() {
         // If an image arrived recently, wait and continue
         if now.duration_since(last_signal) < Duration::from_secs(5) {
             pause.await;
-        }
-        // Otherwise, start the screensaver sequence
-        else {
+        } else {
+            // Otherwise, start the screensaver sequence
             defmt::info!("screensaver ON :)");
+
             loop {
-                // RED frame
-                if let Ok(pool) = POOL.alloc(Image::gradient(RED.gamma_correct())) {
+                // RED Triangle frame
+                let mut im = Image::default();
+                let triangle = Triangle::new(Point::new(0, 0), Point::new(7, 0), Point::new(0, 7));
+                let style = PrimitiveStyle::with_stroke(Rgb888::RED, 1);
+                triangle.draw_styled(&style, &mut im).unwrap();
+                if let Ok(pool) = POOL.alloc(im) {
                     NEXT_IMAGE.signal(pool);
                 }
                 Timer::after(Duration::from_millis(500)).await;
+
                 if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
                     last_signal = new_signal;
                     now = Instant::now();
@@ -150,11 +160,16 @@ pub async fn screensaver() {
                     break;
                 }
 
-                // GREEN frame
-                if let Ok(pool) = POOL.alloc(Image::gradient(GREEN.gamma_correct())) {
+                // GREEN Rectangle frame
+                let mut im1 = Image::default();
+                let rectangle = Rectangle::new(Point::new(0, 0), Size::new(8, 8));
+                let style = PrimitiveStyle::with_stroke(Rgb888::GREEN, 1);
+                rectangle.draw_styled(&style, &mut im1).unwrap();
+                if let Ok(pool) = POOL.alloc(im1) {
                     NEXT_IMAGE.signal(pool);
                 }
                 Timer::after(Duration::from_millis(500)).await;
+
                 if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
                     last_signal = new_signal;
                     now = Instant::now();
@@ -163,11 +178,16 @@ pub async fn screensaver() {
                     break;
                 }
 
-                // BLUE frame
-                if let Ok(pool) = POOL.alloc(Image::gradient(BLUE.gamma_correct())) {
+                // BLUE Circle frame
+                let mut im2 = Image::default();
+                let circle = Circle::new(Point::new(0, 0), 8);
+                let style = PrimitiveStyle::with_stroke(Rgb888::BLUE, 1);
+                circle.draw_styled(&style, &mut im2).unwrap();
+                if let Ok(pool) = POOL.alloc(im2) {
                     NEXT_IMAGE.signal(pool);
                 }
                 Timer::after(Duration::from_millis(500)).await;
+
                 if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
                     last_signal = new_signal;
                     now = Instant::now();
@@ -176,11 +196,18 @@ pub async fn screensaver() {
                     break;
                 }
 
-                // WHITE frame
-                if let Ok(pool) = POOL.alloc(Image::gradient(WHITE.gamma_correct())) {
+                // WHITE X frame
+                let mut im3 = Image::default();
+                let x1 = Line::new(Point::new(0, 0), Point::new(7, 7));
+                let x2 = Line::new(Point::new(7, 0), Point::new(0, 7));
+                let style = PrimitiveStyle::with_stroke(Rgb888::WHITE, 1);
+                x1.draw_styled(&style, &mut im3).unwrap();
+                x2.draw_styled(&style, &mut im3).unwrap();
+                if let Ok(pool) = POOL.alloc(im3) {
                     NEXT_IMAGE.signal(pool);
                 }
                 Timer::after(Duration::from_millis(500)).await;
+
                 if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
                     last_signal = new_signal;
                     now = Instant::now();

@@ -8,6 +8,7 @@ use embassy_time::Instant;
 use heapless::pool::boxed::Box;
 
 // Re-exported modules for gamma correction, image handling, matrix driver, and async tasks
+pub mod embedded;
 pub mod gamma;
 pub mod image;
 pub mod matrix;
