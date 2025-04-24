@@ -19,6 +19,7 @@ embassy-sync = "0.6.2"
 heapless = "0.8.0"
 futures = { version = "0.3", default-features = false }
 embedded-graphics = "0.8.1"
+ibm437 = "0.3.3"
 [[bin]]
 name = "tp-led-matrix"
 

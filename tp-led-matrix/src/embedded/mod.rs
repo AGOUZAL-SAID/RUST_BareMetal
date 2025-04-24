@@ -29,7 +29,7 @@ impl DrawTarget for Image {
             // only draw within 0..8 bounds
             if (0..8).contains(&x) && (0..8).contains(&y) {
                 // convert Rgb888 into our Color
-                *self.index_mut((x as usize, y as usize)) = c.into();
+                *self.index_mut((7 - x as usize, y as usize)) = c.into();
             }
         }
         Ok(())
