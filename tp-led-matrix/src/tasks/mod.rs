@@ -1,12 +1,13 @@
+use crate::image::{BLUE, GREEN, WHITE};
+use crate::{Color, Image, POOL, image::RED};
+use crate::{NEW_IMAGE_RECEIVED, NEXT_IMAGE, matrix::Matrix};
 use core::panic;
-
-use crate::{Color, Image, POOL};
-use crate::{NEXT_IMAGE, matrix::Matrix};
 use embassy_stm32::{gpio::*, peripherals::PB14};
 use embassy_stm32::{
     peripherals::{DMA1_CH4, DMA1_CH5, PB6, PB7, USART1},
     usart::{Config, Uart},
 };
+use embassy_time::Instant;
 use embassy_time::{Duration, Ticker, Timer};
 use futures::future::FutureExt;
 
@@ -111,6 +112,83 @@ pub async fn serial_receiver(
             }
             // Signal the display task with the new image
             NEXT_IMAGE.signal(image);
+            NEW_IMAGE_RECEIVED.signal(Instant::now());
+        }
+    }
+}
+#[embassy_executor::task]
+pub async fn screensaver() {
+    // Time of the last received signal
+    let mut last_signal = Instant::now();
+    loop {
+        // Non-blocking check for a new signal
+        if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
+            last_signal = new_signal;
+        }
+
+        let mut now = Instant::now();
+        let pause = Timer::after_secs(1);
+
+        // If an image arrived recently, wait and continue
+        if now.duration_since(last_signal) < Duration::from_secs(5) {
+            pause.await;
+        }
+        // Otherwise, start the screensaver sequence
+        else {
+            defmt::info!("screensaver ON :)");
+            loop {
+                // RED frame
+                if let Ok(pool) = POOL.alloc(Image::gradient(RED.gamma_correct())) {
+                    NEXT_IMAGE.signal(pool);
+                }
+                Timer::after(Duration::from_millis(500)).await;
+                if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
+                    last_signal = new_signal;
+                    now = Instant::now();
+                }
+                if now.duration_since(last_signal) < Duration::from_secs(5) {
+                    break;
+                }
+
+                // GREEN frame
+                if let Ok(pool) = POOL.alloc(Image::gradient(GREEN.gamma_correct())) {
+                    NEXT_IMAGE.signal(pool);
+                }
+                Timer::after(Duration::from_millis(500)).await;
+                if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
+                    last_signal = new_signal;
+                    now = Instant::now();
+                }
+                if now.duration_since(last_signal) < Duration::from_secs(5) {
+                    break;
+                }
+
+                // BLUE frame
+                if let Ok(pool) = POOL.alloc(Image::gradient(BLUE.gamma_correct())) {
+                    NEXT_IMAGE.signal(pool);
+                }
+                Timer::after(Duration::from_millis(500)).await;
+                if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
+                    last_signal = new_signal;
+                    now = Instant::now();
+                }
+                if now.duration_since(last_signal) < Duration::from_secs(5) {
+                    break;
+                }
+
+                // WHITE frame
+                if let Ok(pool) = POOL.alloc(Image::gradient(WHITE.gamma_correct())) {
+                    NEXT_IMAGE.signal(pool);
+                }
+                Timer::after(Duration::from_millis(500)).await;
+                if let Some(new_signal) = NEW_IMAGE_RECEIVED.wait().now_or_never() {
+                    last_signal = new_signal;
+                    now = Instant::now();
+                }
+                if now.duration_since(last_signal) < Duration::from_secs(5) {
+                    break;
+                }
+            }
         }
     }
 }

@@ -4,12 +4,16 @@
 
 // Use RTT for defmt logging
 use defmt_rtt as _;
+
+use embassy_stm32::interrupt;
+use embassy_stm32::interrupt::InterruptExt;
 // Link embassy-stm32 for vector table and runtime
 use embassy_stm32 as _;
 use embassy_stm32::Config;
 use embassy_stm32::rcc::*;
 use panic_probe as _;
-
+use tp_led_matrix::DISPLAY_EXECUTOR;
+use tp_led_matrix::tasks::screensaver;
 // Matrix driver and related types
 use tp_led_matrix::NEXT_IMAGE;
 use tp_led_matrix::image::RED;
@@ -20,7 +24,6 @@ use tp_led_matrix::{Image, POOL};
 
 // Heapless pool for boxed images
 use heapless::pool::boxed::BoxBlock;
-
 // Entry point for Embassy executor
 #[embassy_executor::main]
 async fn main(s: embassy_executor::Spawner) {
@@ -75,10 +78,20 @@ async fn main(s: embassy_executor::Spawner) {
     ))
     .unwrap();
     s.spawn(blinker(p.PB14)).unwrap();
-    s.spawn(display(my_matrix)).unwrap();
+    s.spawn(screensaver()).unwrap();
+    embassy_stm32::interrupt::Interrupt::UART4.set_priority(embassy_stm32::interrupt::Priority::P6);
+    let spawner = DISPLAY_EXECUTOR.start(embassy_stm32::interrupt::Interrupt::UART4);
+    spawner.spawn(display(my_matrix)).unwrap();
 
     // Allocate initial image (gradient) and signal the display task
     if let Ok(pool) = POOL.alloc(Image::gradient(RED.gamma_correct())) {
         NEXT_IMAGE.signal(pool);
+    }
+}
+
+#[interrupt]
+unsafe fn UART4() {
+    unsafe {
+        DISPLAY_EXECUTOR.on_interrupt();
     }
 }
