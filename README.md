@@ -50,11 +50,5 @@ This subdirectory contains a virtual machine implementation in Rust. It includes
 *   **Examples**: `99bottles.bin`, `count.bin`, `factorial.bin`, `fibonacci.bin`, `hello_world.bin` (and their `.dis` disassembled counterparts).
 *   **Tests**: Includes various tests for basic operations, assignments, functions, and recursive functions.
 
-## Contribution
 
-Contributions are welcome. Please follow established coding practices and submit pull requests for any improvements or bug fixes.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for more details (if present).
 
